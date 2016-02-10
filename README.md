@@ -1,6 +1,7 @@
 # Hive Funnel Analysis UDFs
 
 [![Build Status](https://travis-ci.org/yahoo/hive-funnel-udf.svg?branch=master)](https://travis-ci.org/yahoo/hive-funnel-udf)
+[![Coverage Status](https://coveralls.io/repos/github/yahoo/hive-funnel-udf/badge.svg?branch=master)](https://coveralls.io/github/yahoo/hive-funnel-udf?branch=master)
 
 [Funnel analysis](https://en.wikipedia.org/wiki/Funnel_analysis) is a method for
 tracking user conversion rates across actions. This enables detection of actions
