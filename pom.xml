@@ -68,10 +68,8 @@
                 <artifactId>cobertura-maven-plugin</artifactId>
                 <version>2.7</version>
                 <configuration>
-                    <formats>
-                        <format>xml</format>
-                        <maxmem>256m</maxmem>
-                    </formats>
+                    <format>xml</format>
+                    <maxmem>256m</maxmem>
                 </configuration>
             </plugin>
             <plugin>
