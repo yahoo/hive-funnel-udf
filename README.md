@@ -1,5 +1,7 @@
 # Hive Funnel Analysis UDFs
 
+[![Build Status](https://travis-ci.org/yahoo/hive-funnel-udf.svg?branch=master)](https://travis-ci.org/yahoo/hive-funnel-udf)
+
 [Funnel analysis](https://en.wikipedia.org/wiki/Funnel_analysis) is a method for
 tracking user conversion rates across actions. This enables detection of actions
 causing high user fallout.
@@ -51,7 +53,7 @@ There are three funnel UDFs provided: [`funnel`](#funnel),
 [`funnel_merge`](#funnel_merge), [`funnel_percent`](#funnel_percent).
 
 The [`funnel`](#funnel) UDF outputs an array of longs showing conversion rates
-across the provided funnels. 
+across the provided funnels.
 
 The [`funnel_merge`](#funnel_merge) UDF merges multiple arrays of longs by
 adding them together.
@@ -108,7 +110,7 @@ Assume a table `user_data`:
 
 ```sql
 SELECT funnel_merge(funnel)
-FROM (SELECT funnel(action, timestamp, array('signup_page', 'email_signup'), 
+FROM (SELECT funnel(action, timestamp, array('signup_page', 'email_signup'),
                                        array('confirm_button'),
                                        array('submit_button')) AS funnel
       FROM user_data
@@ -121,7 +123,7 @@ Result: `[3, 2, 1]`
 
 ```sql
 SELECT funnel_percent(funnel_merge(funnel))
-FROM (SELECT funnel(action, timestamp, array('signup_page'), 
+FROM (SELECT funnel(action, timestamp, array('signup_page'),
                                        array('confirm_button'),
                                        array('submit_button')) AS funnel
       FROM user_data
