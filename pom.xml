@@ -69,7 +69,8 @@
                 <version>2.7</version>
                 <configuration>
                     <formats>
-                        <format>html</format>
+                        <format>xml</format>
+                        <maxmem>256m</maxmem>
                     </formats>
                 </configuration>
             </plugin>
@@ -86,6 +87,11 @@
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     <configLocation>src/main/resources/checkstyle.xml</configLocation>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.eluder.coveralls</groupId>
+                <artifactId>coveralls-maven-plugin</artifactId>
+                <version>4.1.0</version>
             </plugin>
         </plugins>
     </build>
