@@ -14,7 +14,7 @@ Hive table.
 ## Requirements
 
 [Maven](https://maven.apache.org/index.html) is required to build the funnel
-UDF.
+UDFs.
 
 ## How to build
 
