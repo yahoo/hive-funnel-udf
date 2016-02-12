@@ -80,18 +80,21 @@ public class Funnel extends AbstractGenericUDAFResolver {
 
         // Check that all funnel steps are the same type as the action_column
         for (int i = 2; i < parameters.length; i++) {
-            // Check that the parameter is a list
-            if (parameters[i].getCategory() != ObjectInspector.Category.LIST) {
-                throw new UDFArgumentTypeException(i, "Funnel parameter " + Integer.toString(i) + " of type " + parameters[i].getTypeName() + ", it should be a list.");
-            }
-            // Get list type info
-            TypeInfo typeInfo = ((ListTypeInfo) parameters[i]).getListElementTypeInfo();
-            if (typeInfo.getCategory() != ObjectInspector.Category.PRIMITIVE) {
-                throw new UDFArgumentTypeException(i, "Funnel list parameter " + Integer.toString(i) + " of type " + parameters[i].getTypeName() + " does not match expected type " + parameters[0].getTypeName() + ".");
-            }
-            // Check that the list type matches the action column
-            if (((PrimitiveTypeInfo) typeInfo).getPrimitiveCategory() != actionColumnCategory) {
-                throw new UDFArgumentTypeException(i, "Funnel list parameter " + Integer.toString(i) + " of type " + parameters[i].getTypeName() + " does not match expected type " + parameters[0].getTypeName() + ".");
+            switch (parameters[i].getCategory()) {
+                case LIST:
+                    // Check that the list is of primitives of the same type as the action column
+                    TypeInfo typeInfo = ((ListTypeInfo) parameters[i]).getListElementTypeInfo();
+                    if (typeInfo.getCategory() != ObjectInspector.Category.PRIMITIVE || ((PrimitiveTypeInfo) typeInfo).getPrimitiveCategory() != actionColumnCategory) {
+                        throw new UDFArgumentTypeException(i, "Funnel list parameter " + Integer.toString(i) + " of type " + parameters[i].getTypeName() + " does not match expected type " + parameters[0].getTypeName() + ".");
+                    }
+                    break;
+                case PRIMITIVE:
+                    if (((PrimitiveTypeInfo) parameters[i]).getPrimitiveCategory() != actionColumnCategory) {
+                        throw new UDFArgumentTypeException(i, "Funnel list parameter " + Integer.toString(i) + " of type " + parameters[i].getTypeName() + " does not match expected type " + parameters[0].getTypeName() + ".");
+                    }
+                    break;
+                default:
+                    throw new UDFArgumentTypeException(i, "Funnel list parameter " + Integer.toString(i) + " of type " + parameters[i].getTypeName() + " should be a list or a scalar.");
             }
         }
 
@@ -159,20 +162,32 @@ public class Funnel extends AbstractGenericUDAFResolver {
             // Add the funnel steps if not alread in funnelAggregate
             if (funnelAggregate.funnelSteps.isEmpty()) {
                 for (int i = 2; i < parameters.length; i++) {
-                    // Get the funnel list for this step
-                    List<Object> funnelStep = (List<Object>) funnelObjectInspector.getList(parameters[i]);
-                    // Check if the funnel step is null
-                    if (funnelStep != null) {
-                        // Remove all nulls from list
-                        funnelStep.removeAll(Collections.singleton(null));
-                        // If there are values in the funnel
-                        if (!funnelStep.isEmpty()) {
-                            // Add the funnel steps to the funnel list
-                            funnelAggregate.funnelSteps.add(new HashSet<Object>(funnelStep));
-                            // Also add all actions in the funnel step to the total funnel set
-                            funnelAggregate.funnelSet.addAll(funnelStep);
+                    // If list of funnels
+                    if (parameters[i] instanceof List) {
+                        // Get the funnel list for this step
+                        List<Object> funnelStep = (List<Object>) funnelObjectInspector.getList(parameters[i]);
+                        // Check if the funnel step is null
+                        if (funnelStep != null) {
+                            // Remove all nulls from list
+                            funnelStep.removeAll(Collections.singleton(null));
+                            // If there are values in the funnel
+                            if (!funnelStep.isEmpty()) {
+                                // Add the funnel steps to the funnel list
+                                funnelAggregate.funnelSteps.add(new HashSet<Object>(funnelStep));
+                                // Also add all actions in the funnel step to the total funnel set
+                                funnelAggregate.funnelSet.addAll(funnelStep);
+                            }
                         }
-                    }
+                    } else {
+                        // A single funnel (not an array), copy using the action object inspector
+                        Object funnelStep = ObjectInspectorUtils.copyToStandardObject(parameters[i], funnelObjectInspector.getListElementObjectInspector());
+                        if (funnelStep != null) {
+                            Set<Object> hashSet = new HashSet<Object>();
+                            hashSet.add(funnelStep);
+                            funnelAggregate.funnelSteps.add(hashSet);
+                            funnelAggregate.funnelSet.add(funnelStep);
+                        }
+                    } 
                 }
             }
 
