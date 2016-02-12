@@ -2,7 +2,7 @@
 
 [![Build Status](https://img.shields.io/travis/yahoo/hive-funnel-udf.svg?style=flat)](https://travis-ci.org/yahoo/hive-funnel-udf)
 [![Coverage Status](https://img.shields.io/coveralls/yahoo/hive-funnel-udf.svg?style=flat)](https://coveralls.io/github/yahoo/hive-funnel-udf?branch=master)
-[![Apache License 2.0](https://img.shields.io/badge/license-Apache%202.0-brightgreen.svg?style=flat)](LICENSE)
+[![Apache License 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat)](LICENSE)
 
 [Funnel analysis](https://en.wikipedia.org/wiki/Funnel_analysis) is a method for
 tracking user conversion rates across actions. This enables detection of actions
