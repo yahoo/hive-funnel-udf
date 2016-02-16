@@ -50,7 +50,7 @@ public class Percent extends GenericUDF {
 
         // Check that the argument is a list type
         if (arguments[0].getCategory() != ObjectInspector.Category.LIST) {
-            throw new UDFArgumentTypeException(1, "Only list type arguments are accepted" + arguments[0].getTypeName() + " was passed.");
+            throw new UDFArgumentTypeException(1, "Only list type arguments are accepted, but " + arguments[0].getTypeName() + " was passed.");
         }
 
         // Check that the list is of type long
@@ -59,7 +59,7 @@ public class Percent extends GenericUDF {
             case LONG:
                 break;
             default:
-                throw new UDFArgumentTypeException(3, "A long array argument should be passed, but " + arguments[0].getTypeName() + " was passed instead.");
+                throw new UDFArgumentTypeException(1, "A long array argument should be passed, but " + arguments[0].getTypeName() + " was passed instead.");
         }
 
         // Get the list object inspector
