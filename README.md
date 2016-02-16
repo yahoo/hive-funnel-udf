@@ -85,14 +85,15 @@ There is no need to sort the data on timestamp, the UDF will take care of it. If
 there is a collision in the timestamps, it then sorts on the action column.
 
 ### `funnel`
-`funnel(action_column, timestamp_column, array(funnel_1), array(funnel_2), ...)`
+`funnel(action_column, timestamp_column, array(funnel_1_a, funnel_1_b), funnel_2, ...)`
   - Builds a funnel report applied to the `action_column`, sorted by the
     `timestamp_column`.
-  - The funnels are arrays of the same type as the `action` column. This allows
+  - The funnels are scalars or arrays of the same type as the `action` column. This allows
     for multiple matches to move to the next funnel.
     - For example, funnel_1 could be `array('register_button',
       'facebook_invite_register')`. The funnel will match the first occurence
       of either of these actions and proceed to the next funnel.
+    - Or, funnel_1 could just be `'register_button'`.
   - You can have an arbitrary number of funnels.
   - The `timestamp_column` can be of any comparable type (Strings, Integers,
     Dates, etc).
