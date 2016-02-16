@@ -21,11 +21,11 @@ Hive table.
     * [`funnel`](#funnel)
     * [`funnel_merge`](#funnel_merge)
     * [`funnel_percent`](#funnel_percent)
-    * [Examples](#examples)
-      * [Simple funnel](#simple-funnel)
-      * [Simple funnel with percent](#simple-funnel-with-percent)
-      * [Funnel with multiple groups](#funnel-with-multiple-groups)
-      * [Multiple parallel funnels](#multiple-parallel-funnels)
+  * [Examples](#examples)
+    * [Simple funnel](#simple-funnel)
+    * [Simple funnel with percent](#simple-funnel-with-percent)
+    * [Funnel with multiple groups](#funnel-with-multiple-groups)
+    * [Multiple parallel funnels](#multiple-parallel-funnels)
   * [Contributors](#contributors)
   * [License](#license)
 
@@ -110,7 +110,7 @@ there is a collision in the timestamps, it then sorts on the action column.
     through [`funnel_percent`](#funnel_percent) then it would look like `[1.0,
     0.44, 0.49, 0.24]`.
 
-### Examples
+## Examples
 
 Assume a table `user_data`:
 
@@ -126,7 +126,7 @@ Assume a table `user_data`:
 | decline             | 200       | 3       | f      |
 | ...                 | ...       | ...     | ...    |
 
-#### Simple funnel
+### Simple funnel
 
 ```sql
 SELECT funnel_merge(funnel)
@@ -139,7 +139,7 @@ FROM (SELECT funnel(action, timestamp, array('signup_page', 'email_signup'),
 
 Result: `[3, 2, 1]`
 
-#### Simple funnel with percent
+### Simple funnel with percent
 
 ```sql
 SELECT funnel_percent(funnel_merge(funnel))
@@ -152,7 +152,7 @@ FROM (SELECT funnel(action, timestamp, array('signup_page'),
 
 Result: `[1.0, 0.66, 0.5]`
 
-#### Funnel with multiple groups
+### Funnel with multiple groups
 
 ```sql
 SELECT gender, funnel_merge(funnel)
@@ -166,7 +166,7 @@ FROM (SELECT gender,
 
 Result: `m: [1, 0, 0], f: [2, 2, 1]`
 
-#### Multiple parallel funnels
+### Multiple parallel funnels
 
 ```sql
 SELECT funnel_merge(funnel1), funnel_merge(funnel2)
