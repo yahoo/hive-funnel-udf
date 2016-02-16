@@ -11,6 +11,24 @@ causing high user fallout.
 These Hive UDFs enables funnel analysis to be performed simply and easily on any
 Hive table.
 
+## Table of Contents
+
+  * [Requirements](#requirements)
+  * [How to build](#how-to-build)
+    * [Build JAR](#build-jar)
+    * [Register JAR with Hive](#register-jar-with-hive)
+  * [How to use](#how-to-use)
+    * [`funnel`](#funnel)
+    * [`funnel_merge`](#funnel_merge)
+    * [`funnel_percent`](#funnel_percent)
+  * [Examples](#examples)
+    * [Simple funnel](#simple-funnel)
+    * [Simple funnel with percent](#simple-funnel-with-percent)
+    * [Funnel with multiple groups](#funnel-with-multiple-groups)
+    * [Multiple parallel funnels](#multiple-parallel-funnels)
+  * [Contributors](#contributors)
+  * [License](#license)
+
 ## Requirements
 
 [Maven](https://maven.apache.org/index.html) is required to build the funnel
@@ -93,7 +111,7 @@ there is a collision in the timestamps, it then sorts on the action column.
     through [`funnel_percent`](#funnel_percent) then it would look like `[1.0,
     0.44, 0.49, 0.24]`.
 
-### Examples
+## Examples
 
 Assume a table `user_data`:
 
@@ -109,7 +127,7 @@ Assume a table `user_data`:
 | decline             | 200       | 3       | f      |
 | ...                 | ...       | ...     | ...    |
 
-#### Simple funnel: `(signup OR email_signup) -> confirm -> submit`
+### Simple funnel
 
 ```sql
 SELECT funnel_merge(funnel)
@@ -122,7 +140,7 @@ FROM (SELECT funnel(action, timestamp, array('signup_page', 'email_signup'),
 
 Result: `[3, 2, 1]`
 
-#### Simple funnel with percent: `signup -> confirm -> submit`
+### Simple funnel with percent
 
 ```sql
 SELECT funnel_percent(funnel_merge(funnel))
@@ -135,7 +153,7 @@ FROM (SELECT funnel(action, timestamp, 'signup_page',
 
 Result: `[1.0, 0.66, 0.5]`
 
-#### Funnel with multiple groups: `signup -> confirm -> submit` by gender
+### Funnel with multiple groups
 
 ```sql
 SELECT gender, funnel_merge(funnel)
@@ -149,7 +167,7 @@ FROM (SELECT gender,
 
 Result: `m: [1, 0, 0], f: [2, 2, 1]`
 
-#### Multiple parallel funnels: `signup -> confirm -> submit` and `signup -> decline`
+### Multiple parallel funnels
 
 ```sql
 SELECT funnel_merge(funnel1), funnel_merge(funnel2)
@@ -163,6 +181,10 @@ FROM (SELECT funnel(action, timestamp, 'signup_page',
 ```
 
 Result: `[3, 2, 1] [3, 1]`
+
+## Contributors
+
+Josh Walters, [josh@joshwalters.com](mailto:josh@joshwalters.com)
 
 ## License
 
