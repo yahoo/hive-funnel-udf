@@ -25,7 +25,7 @@ Hive table.
       * [Simple funnel](#simple-funnel)
       * [Simple funnel with percent](#simple-funnel-with-percent)
       * [Funnel with multiple groups](#funnel-with-multiple-groups)
-      * [Multiple parallel funnels)(#multiple-parallel-funnels)
+      * [Multiple parallel funnels](#multiple-parallel-funnels)
   * [Contributors](#contributors)
   * [License](#license)
 
