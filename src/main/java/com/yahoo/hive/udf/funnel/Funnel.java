@@ -48,10 +48,10 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
 @UDFType(deterministic = true)
 @Description(name = "funnel",
-             value = "_FUNC_(action_column, timestamp_column, funnel_1, funnel_2, ...) - Builds a funnel report applied to the action_column. Funnels are lists. Should be used with merge_funnel UDF.",
+             value = "_FUNC_(action_column, timestamp_column, funnel_1, funnel_2, ...) - Builds a funnel report applied to the action_column. Funnels can be lists or scalars. Should be used with merge_funnel UDF.",
              extended = "Example: SELECT funnel(action, timestamp, array('signup_page', 'email_signup'), \n" +
-                        "                                          array('confirm_button'),\n" +
-                        "                                          array('submit_button')) AS funnel\n" +
+                        "                                          'confirm_button',\n" +
+                        "                                          'submit_button') AS funnel\n" +
                         "         FROM table\n" +
                         "         GROUP BY user_id;")
 public class Funnel extends AbstractGenericUDAFResolver {
