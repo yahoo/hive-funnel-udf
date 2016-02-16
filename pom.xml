@@ -63,16 +63,6 @@
                     <finalName>${project.artifactId}</finalName>
                 </configuration>
             </plugin>
-            <!--plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <version>2.7</version>
-                <configuration>
-                    <format>html</format>
-                    <format>xml</format>
-                    <maxmem>256m</maxmem>
-                </configuration>
-            </plugin-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
