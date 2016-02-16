@@ -102,12 +102,12 @@ public class Merge extends AbstractGenericUDAFResolver {
 
         @Override
         public void iterate(AggregationBuffer aggregate, Object[] parameters) throws HiveException {
-            Object p = parameters[0];
+            Object parameter = parameters[0];
             // If not null
-            if (p != null) {
+            if (parameter != null) {
                 // Get the funnel aggregate and the funnel data
                 MergeAggregateBuffer funnelAggregate = (MergeAggregateBuffer) aggregate;
-                List<Long> funnel = (List<Long>) listObjectInspector.getList(p);
+                List<Long> funnel = (List<Long>) listObjectInspector.getList(parameter);
 
                 // Add the funnel to the funnel aggregate
                 funnelAggregate.addFunnel(funnel);

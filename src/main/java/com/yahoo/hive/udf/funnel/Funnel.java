@@ -159,7 +159,7 @@ public class Funnel extends AbstractGenericUDAFResolver {
         public void iterate(AggregationBuffer aggregate, Object[] parameters) throws HiveException {
             FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
 
-            // Add the funnel steps if not alread in funnelAggregate
+            // Add the funnel steps if not already in funnelAggregate
             if (funnelAggregate.funnelSteps.isEmpty()) {
                 for (int i = 2; i < parameters.length; i++) {
                     // If list of funnels
@@ -208,6 +208,23 @@ public class Funnel extends AbstractGenericUDAFResolver {
             }
         }
 
+        /**
+         * Convert an object to a list. Checks if it is a LazyBinaryArray or a
+         * regular list.
+         *
+         * @param object Input object to try and cast to a list.
+         * @return List of objects.
+         */
+        private List<Object> toList(Object object) {
+            List<Object> result;
+            if (object instanceof LazyBinaryArray) {
+                result = ((LazyBinaryArray) object).getList();
+            } else {
+                result = (List<Object>) object;
+            }
+            return result;
+        }
+
         @Override
         public void merge(AggregationBuffer aggregate, Object partial) throws HiveException {
             FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
@@ -218,33 +235,12 @@ public class Funnel extends AbstractGenericUDAFResolver {
             Object partialFunnel = internalMergeObjectInspector.getStructFieldData(partial, internalMergeObjectInspector.getStructFieldRef(FUNNEL));
 
             // Lists for partial data
-            List<Object> partialActionList;
-            List<Object> partialTimestampList;
-
-            // Get the partial action list
-            if (partialAction instanceof LazyBinaryArray) {
-                partialActionList = ((LazyBinaryArray) partialAction).getList();
-            } else {
-                partialActionList = (List<Object>) partialAction;
-            }
-
-            // Get the partial timestamp list
-            if (partialTimestamp instanceof LazyBinaryArray) {
-                partialTimestampList = ((LazyBinaryArray) partialTimestamp).getList();
-            } else {
-                partialTimestampList = (List<Object>) partialTimestamp;
-            }
+            List<Object> partialActionList = toList(partialAction);
+            List<Object> partialTimestampList = toList(partialTimestamp);
 
             // If we don't have any funnel steps stored, then we should copy the funnel steps from the partial list
             if (funnelAggregate.funnelSteps.isEmpty()) {
-                List<Object> partialFunnelList;
-
-                // Get the partial funnel list
-                if (partialFunnel instanceof LazyBinaryArray) {
-                    partialFunnelList = ((LazyBinaryArray) partialFunnel).getList();
-                } else {
-                    partialFunnelList = (List<Object>) partialFunnel;
-                }
+                List<Object> partialFunnelList = toList(partialFunnel);
 
                 // Have to "deserialize" from the null separated list
                 Set<Object> funnelStepAccumulator = new HashSet<>();
@@ -268,11 +264,9 @@ public class Funnel extends AbstractGenericUDAFResolver {
         }
 
         @Override
-        public void reset(AggregationBuffer buff) throws HiveException {
-            ((FunnelAggregateBuffer) buff).actions.clear();
-            ((FunnelAggregateBuffer) buff).timestamps.clear();
-            ((FunnelAggregateBuffer) buff).funnelSteps.clear();
-            ((FunnelAggregateBuffer) buff).funnelSet.clear();
+        public void reset(AggregationBuffer aggregate) throws HiveException {
+            FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
+            funnelAggregate.clear();
         }
 
         @Override
