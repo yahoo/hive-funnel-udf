@@ -192,10 +192,10 @@ public class FunnelTest {
         // Order will be "alpha, beta, gamma, delta" when ordered on timestamp_column
         // Funnel is "beta" -> "gamma" -> "epsilon"
         // Should return [1, 1, 0] as we don't have an epsilon
-        Object[] parameters1 = new Object[]{ "beta", 200L, Arrays.asList("beta"), Arrays.asList("gamma"), Arrays.asList("epsilon")};
-        Object[] parameters2 = new Object[]{"alpha", 100L, Arrays.asList("beta"), Arrays.asList("gamma"), Arrays.asList("epsilon")};
-        Object[] parameters3 = new Object[]{"delta", 400L, Arrays.asList("beta"), Arrays.asList("gamma"), Arrays.asList("epsilon")};
-        Object[] parameters4 = new Object[]{"gamma", 300L, Arrays.asList("beta"), Arrays.asList("gamma"), Arrays.asList("epsilon")};
+        Object[] parameters1 = new Object[]{ "beta", 200L, Arrays.asList("beta"), "gamma", Arrays.asList("epsilon")};
+        Object[] parameters2 = new Object[]{"alpha", 100L, Arrays.asList("beta"), "gamma", Arrays.asList("epsilon")};
+        Object[] parameters3 = new Object[]{"delta", 400L, Arrays.asList("beta"), "gamma", Arrays.asList("epsilon")};
+        Object[] parameters4 = new Object[]{"gamma", 300L, Arrays.asList("beta"), "gamma", Arrays.asList("epsilon")};
 
         // Process the data
         AggregationBuffer agg = udafEvaluator.getNewAggregationBuffer();
