@@ -43,8 +43,8 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
              value = "_FUNC_(funnel_column) - Merges funnels. Use with funnel UDF.",
              extended = "Example: SELECT merge_funnel(funnel)\n" +
                         "         FROM (SELECT funnel(action, timestamp, array('signup_page', 'email_signup'), \n" +
-                        "                                                array('confirm_button'),\n" +
-                        "                                                array('submit_button')) AS funnel\n" +
+                        "                                                'confirm_button',\n" +
+                        "                                                'submit_button') AS funnel\n" +
                         "               FROM table\n" +
                         "               GROUP BY user_id) t;")
 public class Merge extends AbstractGenericUDAFResolver {
