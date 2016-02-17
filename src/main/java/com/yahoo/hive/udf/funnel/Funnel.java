@@ -178,6 +178,12 @@ public class Funnel extends AbstractGenericUDAFResolver {
             return new FunnelAggregateBuffer();
         }
 
+        /**
+         * Convert object to list of funnels for a funnel step.
+         * 
+         * @parameter
+         * @return List of funnels in funnel step
+         */
         private List<Object> convertFunnelStepObjectToList(Object parameter) {
             if (parameter instanceof List) {
                 return (List<Object>) funnelObjectInspector.getList(parameter);
@@ -186,10 +192,22 @@ public class Funnel extends AbstractGenericUDAFResolver {
             }
         }
 
+        /**
+         * Returns true if list if not empty.
+         *
+         * @param list
+         * @return True if list not empty
+         */
         private boolean isNotEmpty(List<Object> list) {
             return !list.isEmpty();
         }
 
+        /**
+         * Removes null values from list.
+         *
+         * @param list
+         * @return List without null values
+         */
         private List<Object> removeNullFromList(List<Object> list) {
             return list.stream()
                        .filter(Objects::nonNull)
