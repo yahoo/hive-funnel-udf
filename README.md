@@ -162,7 +162,8 @@ FROM (SELECT gender,
                                        'confirm_button',
                                        'submit_button') AS funnel
       FROM table
-      GROUP BY user_id, gender) t1;
+      GROUP BY user_id, gender) t1
+GROUP BY gender;
 ```
 
 Result: `m: [1, 0, 0], f: [2, 2, 1]`
