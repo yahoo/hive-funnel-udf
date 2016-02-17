@@ -17,9 +17,11 @@
 package com.yahoo.hive.udf.funnel;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.IntStream;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer;
 
 /**
@@ -88,7 +90,64 @@ class FunnelAggregateBuffer implements AggregationBuffer {
         actions.clear();
         timestamps.clear();
         // TODO Might be able to remove these two and reuse, possible optimization
-        funnelSteps.clear();
-        funnelSet.clear();
+        //funnelSteps.clear();
+        //funnelSet.clear();
+    }
+
+    /**
+     * Compute the funnel. Sort the actions by timestamp/action, then build the
+     * funnel.
+     * 
+     * @return list of longs representing the funnel
+     */
+    public List<Long> computeFunnel() {
+        // Create index, sort on timestamp/action
+        Integer[] sortedIndex = IntStream.rangeClosed(0, actions.size() - 1)
+                                         .boxed()
+                                         .sorted(this::funnelAggregateComparator)
+                                         .toArray(Integer[]::new);
+
+        // Input size
+        int inputSize = actions.size();
+
+        // Stores the current index we are at for the funnel
+        int currentFunnelStep = 0;
+
+        // The last funnel index
+        int funnelStepSize = funnelSteps.size();
+
+        // Result funnel, all 0's at the start
+        List<Long> results = new ArrayList<>(Collections.nCopies(funnelStepSize, 0L));
+
+        // Check every sorted action until we reach the end of the funnel
+        for (int i = 0; i < inputSize && currentFunnelStep < funnelStepSize; i++) {
+            // Check if the current action is in the current funnel step
+            if (funnelSteps.get(currentFunnelStep).contains(actions.get(sortedIndex[i]))) {
+                // We have a match, output 1 for this funnel step
+                results.set(currentFunnelStep, 1L);
+                // Move to the next funnel step
+                currentFunnelStep++;
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Used for sorting array of integers according to funnel aggregate
+     * timestamp/action columns. If timestamps match, uses action column.
+     *
+     * @param i1
+     * @param i2
+     * @param funnelAggregate
+     * @return ordering of i1 and i2
+     */
+    private int funnelAggregateComparator(Integer i1, Integer i2) {
+        int result = ((Comparable) timestamps.get(i1)).compareTo(timestamps.get(i2));
+        // Match in timestamp, sort on action
+        if (result == 0) {
+            return ((Comparable) actions.get(i1)).compareTo(actions.get(i2));
+        }
+        return result;
     }
 }

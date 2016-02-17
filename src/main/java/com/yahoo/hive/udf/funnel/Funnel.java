@@ -16,11 +16,7 @@
 
 package com.yahoo.hive.udf.funnel;
 
-import java.util.stream.IntStream;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-//import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -261,49 +257,11 @@ public class Funnel extends AbstractGenericUDAFResolver {
             funnelAggregate.clear();
         }
 
-        private int sortFunnelAggregate(Integer i1, Integer i2, FunnelAggregateBuffer funnelAggregate) {
-            int result = ((Comparable) funnelAggregate.timestamps.get(i1)).compareTo(funnelAggregate.timestamps.get(i2));
-            // Match in timestamp, sort on action
-            if (result == 0) {
-                return ((Comparable) funnelAggregate.actions.get(i1)).compareTo(funnelAggregate.actions.get(i2));
-            }
-            return result;
-        }
 
         @Override
         public Object terminate(AggregationBuffer aggregate) throws HiveException {
             FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
-
-            // Create index, sort on timestamp/action
-            Integer[] sortedIndex = IntStream.rangeClosed(0, funnelAggregate.actions.size() - 1)
-                                             .boxed()
-                                             .sorted((i1, i2) -> sortFunnelAggregate(i1, i2, funnelAggregate))
-                                             .toArray(Integer[]::new);
-
-            // Input size
-            int inputSize = funnelAggregate.actions.size();
-
-            // Stores the current index we are at for the funnel
-            int currentFunnelStepIndex = 0;
-
-            // The last funnel index
-            int funnelStepSize = funnelAggregate.funnelSteps.size();
-
-            // Result funnel, all 0's at the start
-            List<Long> results = new ArrayList<>(Collections.nCopies(funnelStepSize, 0L));
-
-            // Check every sorted action until we reach the end of the funnel
-            for (int i = 0; i < inputSize && currentFunnelStepIndex < funnelStepSize; i++) {
-                // Check if the current action is in the current funnel step
-                if (funnelAggregate.funnelSteps.get(currentFunnelStepIndex).contains(funnelAggregate.actions.get(sortedIndex[i]))) {
-                    // We have a match, output 1 for this funnel step
-                    results.set(currentFunnelStepIndex, 1L);
-                    // Move to the next funnel step
-                    currentFunnelStepIndex++;
-                }
-            }
-
-            return results;
+            return funnelAggregate.computeFunnel();
         }
 
         @Override
