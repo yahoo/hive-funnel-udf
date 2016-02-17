@@ -20,7 +20,7 @@ import java.util.stream.IntStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
+//import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -261,26 +261,24 @@ public class Funnel extends AbstractGenericUDAFResolver {
             funnelAggregate.clear();
         }
 
+        private int sortFunnelAggregate(Integer i1, Integer i2, FunnelAggregateBuffer funnelAggregate) {
+            int result = ((Comparable) funnelAggregate.timestamps.get(i1)).compareTo(funnelAggregate.timestamps.get(i2));
+            // Match in timestamp, sort on action
+            if (result == 0) {
+                return ((Comparable) funnelAggregate.actions.get(i1)).compareTo(funnelAggregate.actions.get(i2));
+            }
+            return result;
+        }
+
         @Override
         public Object terminate(AggregationBuffer aggregate) throws HiveException {
-            final FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
+            FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
 
-            // Create index for sorting on timestamp/action
+            // Create index, sort on timestamp/action
             Integer[] sortedIndex = IntStream.rangeClosed(0, funnelAggregate.actions.size() - 1)
                                              .boxed()
+                                             .sorted((i1, i2) -> sortFunnelAggregate(i1, i2, funnelAggregate))
                                              .toArray(Integer[]::new);
-
-            // Sort index
-            Arrays.sort(sortedIndex, new Comparator<Integer>() {
-                public int compare(Integer i1, Integer i2) {
-                    int result = ((Comparable) funnelAggregate.timestamps.get(i1)).compareTo(funnelAggregate.timestamps.get(i2));
-                    // Match in timestamp, sort on action
-                    if (result == 0) {
-                        return ((Comparable) funnelAggregate.actions.get(i1)).compareTo(funnelAggregate.actions.get(i2));
-                    }
-                    return result;
-                }
-            });
 
             // Input size
             int inputSize = funnelAggregate.actions.size();
