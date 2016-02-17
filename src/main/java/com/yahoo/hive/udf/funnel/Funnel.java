@@ -16,6 +16,7 @@
 
 package com.yahoo.hive.udf.funnel;
 
+import java.util.stream.IntStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -265,10 +266,9 @@ public class Funnel extends AbstractGenericUDAFResolver {
             final FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
 
             // Create index for sorting on timestamp/action
-            Integer[] sortedIndex = new Integer[funnelAggregate.actions.size()];
-            for (int i = 0 ; i < sortedIndex.length; i++) {
-                sortedIndex[i] = i;
-            }
+            Integer[] sortedIndex = IntStream.rangeClosed(0, funnelAggregate.actions.size() - 1)
+                                             .boxed()
+                                             .toArray(Integer[]::new);
 
             // Sort index
             Arrays.sort(sortedIndex, new Comparator<Integer>() {
