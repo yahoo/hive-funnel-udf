@@ -209,7 +209,7 @@ public class Funnel extends AbstractGenericUDAFResolver {
         }
 
         /**
-         * Convert an object to a list. Checks if it is a LazyBinaryArray or a
+         * Cast an object to a list. Checks if it is a LazyBinaryArray or a
          * regular list.
          *
          * @param object Input object to try and cast to a list.
@@ -225,36 +225,29 @@ public class Funnel extends AbstractGenericUDAFResolver {
             return result;
         }
 
+        /**
+         * Given a struct and a key, look the key up in the struct with the
+         * merge object inspector.
+         *
+         * @param object Struct object
+         * @param key Key to look up
+         */
+        private Object structLookup(Object object, String key) {
+            return internalMergeObjectInspector.getStructFieldData(object, internalMergeObjectInspector.getStructFieldRef(key));
+        }
+
         @Override
         public void merge(AggregationBuffer aggregate, Object partial) throws HiveException {
             FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
 
-            // Get the partial data
-            Object partialAction = internalMergeObjectInspector.getStructFieldData(partial, internalMergeObjectInspector.getStructFieldRef(ACTION));
-            Object partialTimestamp = internalMergeObjectInspector.getStructFieldData(partial, internalMergeObjectInspector.getStructFieldRef(TIMESTAMP));
-            Object partialFunnel = internalMergeObjectInspector.getStructFieldData(partial, internalMergeObjectInspector.getStructFieldRef(FUNNEL));
-
             // Lists for partial data
-            List<Object> partialActionList = toList(partialAction);
-            List<Object> partialTimestampList = toList(partialTimestamp);
+            List<Object> partialActionList = toList(structLookup(partial, ACTION));
+            List<Object> partialTimestampList = toList(structLookup(partial, TIMESTAMP));
 
             // If we don't have any funnel steps stored, then we should copy the funnel steps from the partial list
             if (funnelAggregate.funnelSteps.isEmpty()) {
-                List<Object> partialFunnelList = toList(partialFunnel);
-
-                // Have to "deserialize" from the null separated list
-                Set<Object> funnelStepAccumulator = new HashSet<>();
-                for (Object e : partialFunnelList) {
-                    if (e == null) {
-                        // Add the funnel step, need to do a deep copy
-                        funnelAggregate.funnelSteps.add(new HashSet<>(funnelStepAccumulator));
-                        // Clear the set
-                        funnelStepAccumulator.clear();
-                    } else {
-                        // Add to the step accumulator
-                        funnelStepAccumulator.add(e);
-                    }
-                }
+                List<Object> partialFunnelList = toList(structLookup(partial, FUNNEL));
+                funnelAggregate.deserializeFunnel(partialFunnelList);
             }
 
             // Add all the actions in partial to the end of the actions list

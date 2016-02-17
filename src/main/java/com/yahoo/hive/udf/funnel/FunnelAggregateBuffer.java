@@ -61,11 +61,33 @@ class FunnelAggregateBuffer implements AggregationBuffer {
     }
 
     /**
+     * Deserialize funnel steps. Have to deserialize the null separated list.
+     */
+    public void deserializeFunnel(List<Object> serializedFunnel) {
+        // Have to "deserialize" from the null separated list
+        Set<Object> funnelStepAccumulator = new HashSet<>();
+        for (Object e : serializedFunnel) {
+            // If not null
+            if (e != null) {
+                // Add to the step accumulator
+                funnelStepAccumulator.add(e);
+            } else {
+                // Found a null, add the funnel step
+                // Need to do a deep copy
+                funnelSteps.add(new HashSet<>(funnelStepAccumulator));
+                // Clear the set
+                funnelStepAccumulator.clear();
+            }
+        }
+    }
+
+    /**
      * Clear the aggregate.
      */
     public void clear() {
         actions.clear();
         timestamps.clear();
+        // TODO Might be able to remove these two and reuse, possible optimization
         funnelSteps.clear();
         funnelSet.clear();
     }
