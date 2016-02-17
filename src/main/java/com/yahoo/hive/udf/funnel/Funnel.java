@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.exec.Description;
@@ -102,17 +103,25 @@ public class Funnel extends AbstractGenericUDAFResolver {
     }
 
     public static class FunnelEvaluator extends GenericUDAFEvaluator {
-        //// For PARTIAL1 and COMPLETE
+        /** For PARTIAL1 and COMPLETE. */
         private ObjectInspector actionObjectInspector;
+
+        /** For PARTIAL1 and COMPLETE. */
         private ObjectInspector timestampObjectInspector;
+
+        /** For PARTIAL1 and COMPLETE. */
         private ListObjectInspector funnelObjectInspector;
 
-        //// For PARTIAL2 and FINAL
+        /** For PARTIAL2 and FINAL. */
         private StandardStructObjectInspector internalMergeObjectInspector;
 
-        // Constants for internal struct
+        /** Action key constant. */
         private static final String ACTION = "action";
+
+        /** Timestamp key constant. */
         private static final String TIMESTAMP = "timestamp";
+
+        /** Funnel key constant. */
         private static final String FUNNEL = "funnel";
 
         @Override
@@ -122,28 +131,42 @@ public class Funnel extends AbstractGenericUDAFResolver {
             // Setup the object inspectors and return type
             switch (m) {
                 case PARTIAL1:
+                    // Get the object inspectors
                     actionObjectInspector = parameters[0];
                     timestampObjectInspector = parameters[1];
                     funnelObjectInspector = (ListObjectInspector) parameters[2];
-                    List<String> fieldNames = new ArrayList<>();
-                    fieldNames.add(ACTION);
-                    fieldNames.add(TIMESTAMP);
-                    fieldNames.add(FUNNEL);
-                    List<ObjectInspector> fieldInspectors = new ArrayList<>();
-                    fieldInspectors.add(ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorUtils.getStandardObjectInspector(actionObjectInspector)));
-                    fieldInspectors.add(ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorUtils.getStandardObjectInspector(timestampObjectInspector)));
-                    fieldInspectors.add(ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorUtils.getStandardObjectInspector(actionObjectInspector))); // Want lazystring, not text
+
+                    // The field names for the struct, order matters
+                    List<String> fieldNames = Arrays.asList(ACTION, TIMESTAMP, FUNNEL);
+
+                    // The field inspectors for the struct, order matters
+                    List<ObjectInspector> fieldInspectors = Arrays.asList(actionObjectInspector, timestampObjectInspector, actionObjectInspector)
+                                                                  .stream()
+                                                                  .map(objectInspector -> ObjectInspectorUtils.getStandardObjectInspector(objectInspector))
+                                                                  .map(standardObjectInspector -> ObjectInspectorFactory.getStandardListObjectInspector(standardObjectInspector))
+                                                                  .collect(Collectors.toList());
+
+                    // Will output structs
                     return ObjectInspectorFactory.getStandardStructObjectInspector(fieldNames, fieldInspectors);
                 case PARTIAL2:
+                    // Get the struct object inspector
                     internalMergeObjectInspector = (StandardStructObjectInspector) parameters[0];
+
+                    // Will output structs
                     return internalMergeObjectInspector;
                 case FINAL:
+                    // Get the struct object inspector
                     internalMergeObjectInspector = (StandardStructObjectInspector) parameters[0];
+
+                    // Will output list of longs
                     return ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaLongObjectInspector);
                 case COMPLETE:
+                    // Get the object inspectors
                     actionObjectInspector = parameters[0];
                     timestampObjectInspector = parameters[1];
                     funnelObjectInspector = (ListObjectInspector) parameters[2];
+
+                    // Will output list of longs
                     return ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaLongObjectInspector);
                 default:
                     throw new HiveException("Unknown Mode: " + m.toString());
