@@ -178,41 +178,6 @@ public class Funnel extends AbstractGenericUDAFResolver {
             return new FunnelAggregateBuffer();
         }
 
-        /**
-         * Convert object to list of funnels for a funnel step.
-         * 
-         * @parameter
-         * @return List of funnels in funnel step
-         */
-        private List<Object> convertFunnelStepObjectToList(Object parameter) {
-            if (parameter instanceof List) {
-                return (List<Object>) funnelObjectInspector.getList(parameter);
-            } else {
-                return Arrays.asList(ObjectInspectorUtils.copyToStandardObject(parameter, funnelObjectInspector.getListElementObjectInspector()));
-            }
-        }
-
-        /**
-         * Returns true if list if not empty.
-         *
-         * @param list
-         * @return True if list not empty
-         */
-        private boolean isNotEmpty(List<Object> list) {
-            return !list.isEmpty();
-        }
-
-        /**
-         * Removes null values from list.
-         *
-         * @param list
-         * @return List without null values
-         */
-        private List<Object> removeNullFromList(List<Object> list) {
-            return list.stream()
-                       .filter(Objects::nonNull)
-                       .collect(Collectors.toList());
-        }
 
         /**
          * Adds funnel steps to the aggregate. Funnel steps can be lists or
@@ -260,23 +225,6 @@ public class Funnel extends AbstractGenericUDAFResolver {
         }
 
         /**
-         * Cast an object to a list. Checks if it is a LazyBinaryArray or a
-         * regular list.
-         *
-         * @param object Input object to try and cast to a list.
-         * @return List of objects.
-         */
-        private List<Object> toList(Object object) {
-            List<Object> result;
-            if (object instanceof LazyBinaryArray) {
-                result = ((LazyBinaryArray) object).getList();
-            } else {
-                result = (List<Object>) object;
-            }
-            return result;
-        }
-
-        /**
          * Given a struct and a key, look the key up in the struct with the
          * merge object inspector.
          *
@@ -301,9 +249,8 @@ public class Funnel extends AbstractGenericUDAFResolver {
                 funnelAggregate.deserializeFunnel(partialFunnelList);
             }
 
-            // Add all the actions in partial to the end of the actions list
+            // Add all the partial actions and timestamps to the end of the lists
             funnelAggregate.actions.addAll(partialActionList);
-            // Add all the timestamps in partial to the end of the timestamps list
             funnelAggregate.timestamps.addAll(partialTimestampList);
         }
 
@@ -365,6 +312,59 @@ public class Funnel extends AbstractGenericUDAFResolver {
         public Object terminatePartial(AggregationBuffer aggregate) throws HiveException {
             FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
             return funnelAggregate.serialize();
+        }
+
+        /**
+         * Convert object to list of funnels for a funnel step.
+         * 
+         * @parameter
+         * @return List of funnels in funnel step
+         */
+        private List<Object> convertFunnelStepObjectToList(Object parameter) {
+            if (parameter instanceof List) {
+                return (List<Object>) funnelObjectInspector.getList(parameter);
+            } else {
+                return Arrays.asList(ObjectInspectorUtils.copyToStandardObject(parameter, funnelObjectInspector.getListElementObjectInspector()));
+            }
+        }
+
+        /**
+         * Returns true if list if not empty.
+         *
+         * @param list
+         * @return True if list not empty
+         */
+        private boolean isNotEmpty(List<Object> list) {
+            return !list.isEmpty();
+        }
+
+        /**
+         * Removes null values from list.
+         *
+         * @param list
+         * @return List without null values
+         */
+        private List<Object> removeNullFromList(List<Object> list) {
+            return list.stream()
+                       .filter(Objects::nonNull)
+                       .collect(Collectors.toList());
+        }
+
+        /**
+         * Cast an object to a list. Checks if it is a LazyBinaryArray or a
+         * regular list.
+         *
+         * @param object Input object to try and cast to a list.
+         * @return List of objects.
+         */
+        private List<Object> toList(Object object) {
+            List<Object> result;
+            if (object instanceof LazyBinaryArray) {
+                result = ((LazyBinaryArray) object).getList();
+            } else {
+                result = (List<Object>) object;
+            }
+            return result;
         }
     }
 }
