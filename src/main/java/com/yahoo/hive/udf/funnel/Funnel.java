@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -178,40 +178,50 @@ public class Funnel extends AbstractGenericUDAFResolver {
             return new FunnelAggregateBuffer();
         }
 
+        private List<Object> convertFunnelStepObjectToList(Object parameter) {
+            if (parameter instanceof List) {
+                return (List<Object>) funnelObjectInspector.getList(parameter);
+            } else {
+                return Arrays.asList(ObjectInspectorUtils.copyToStandardObject(parameter, funnelObjectInspector.getListElementObjectInspector()));
+            }
+        }
+
+        private boolean isNotEmpty(List<Object> list) {
+            return !list.isEmpty();
+        }
+
+        private List<Object> removeNullFromList(List<Object> list) {
+            return list.stream()
+                       .filter(Objects::nonNull)
+                       .collect(Collectors.toList());
+        }
+
+        /**
+         * Adds funnel steps to the aggregate. Funnel steps can be lists or
+         * scalars.
+         *
+         * @param funnelAggregate
+         * @param parameters
+         */
+        private void addFunnelSteps(FunnelAggregateBuffer funnelAggregate, Object[] parameters) {
+            Arrays.stream(parameters)
+                  .map(this::convertFunnelStepObjectToList)
+                  .map(this::removeNullFromList)
+                  .filter(this::isNotEmpty)
+                  .forEach(funnelStep -> {
+                          funnelAggregate.funnelSteps.add(new HashSet<Object>(funnelStep));
+                          funnelAggregate.funnelSet.addAll(funnelStep);
+                      });
+        }
+
         @Override
         public void iterate(AggregationBuffer aggregate, Object[] parameters) throws HiveException {
             FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
 
-            // Add the funnel steps if not already in funnelAggregate
+            // Add the funnel steps if not already stored
             if (funnelAggregate.funnelSteps.isEmpty()) {
-                for (int i = 2; i < parameters.length; i++) {
-                    // If list of funnels
-                    if (parameters[i] instanceof List) {
-                        // Get the funnel list for this step
-                        List<Object> funnelStep = (List<Object>) funnelObjectInspector.getList(parameters[i]);
-                        // Check if the funnel step is null
-                        if (funnelStep != null) {
-                            // Remove all nulls from list
-                            funnelStep.removeAll(Collections.singleton(null));
-                            // If there are values in the funnel
-                            if (!funnelStep.isEmpty()) {
-                                // Add the funnel steps to the funnel list
-                                funnelAggregate.funnelSteps.add(new HashSet<Object>(funnelStep));
-                                // Also add all actions in the funnel step to the total funnel set
-                                funnelAggregate.funnelSet.addAll(funnelStep);
-                            }
-                        }
-                    } else {
-                        // A single funnel (not an array), copy using the action object inspector
-                        Object funnelStep = ObjectInspectorUtils.copyToStandardObject(parameters[i], funnelObjectInspector.getListElementObjectInspector());
-                        if (funnelStep != null) {
-                            Set<Object> hashSet = new HashSet<Object>();
-                            hashSet.add(funnelStep);
-                            funnelAggregate.funnelSteps.add(hashSet);
-                            funnelAggregate.funnelSet.add(funnelStep);
-                        }
-                    } 
-                }
+                // Funnel steps start at index 2
+                addFunnelSteps(funnelAggregate, Arrays.copyOfRange(parameters, 2, parameters.length));
             }
 
             // Get the action_column value and add it (if it matches a funnel)
