@@ -142,8 +142,8 @@ public class Funnel extends AbstractGenericUDAFResolver {
                     // The field inspectors for the struct, order matters
                     List<ObjectInspector> fieldInspectors = Arrays.asList(actionObjectInspector, timestampObjectInspector, actionObjectInspector)
                                                                   .stream()
-                                                                  .map(objectInspector -> ObjectInspectorUtils.getStandardObjectInspector(objectInspector))
-                                                                  .map(standardObjectInspector -> ObjectInspectorFactory.getStandardListObjectInspector(standardObjectInspector))
+                                                                  .map(ObjectInspectorUtils::getStandardObjectInspector)
+                                                                  .map(ObjectInspectorFactory::getStandardListObjectInspector)
                                                                   .collect(Collectors.toList());
 
                     // Will output structs
