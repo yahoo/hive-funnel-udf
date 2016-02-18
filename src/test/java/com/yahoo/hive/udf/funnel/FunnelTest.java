@@ -146,12 +146,12 @@ public class FunnelTest {
         // Order will be "alpha, beta, gamma, delta" when ordered on timestamp_column
         // Funnel is "beta" -> "gamma" -> "epsilon"
         // Should return [1, 1, 0] as we don't have an epsilon
-        Object[] parameters1 = new Object[]{ "beta", 200L, new ArrayList<Object>(), Arrays.asList("beta"),                     null,   Arrays.asList("gamma"), Arrays.asList("epsilon")}; // Test empty list funnel step, and null in funnel step
-        Object[] parameters2 = new Object[]{"alpha", 100L,   Arrays.asList("beta"), Arrays.asList("gamma"), Arrays.asList("epsilon")};
-        Object[] parameters3 = new Object[]{"delta", 400L,   Arrays.asList("beta"), Arrays.asList("gamma"), Arrays.asList("epsilon")};
-        Object[] parameters4 = new Object[]{"gamma", 200L,   Arrays.asList("beta"), Arrays.asList("gamma"), Arrays.asList("epsilon")}; // gamma and beta happen at the same time, beta should come first (sorted on action after timestamp)
-        Object[] parameters5 = new Object[]{   null, 800L,   Arrays.asList("beta"), Arrays.asList("gamma"), Arrays.asList("epsilon")}; // Check null action_column
-        Object[] parameters6 = new Object[]{"omega", null,   Arrays.asList("beta"), Arrays.asList("gamma"), Arrays.asList("epsilon")}; // Check null timestamp
+        Object[] parameters1 = new Object[]{ "beta", 200L, new ArrayList<Object>(), Arrays.asList("beta", "BAD"), null, "gamma", Arrays.asList("epsilon")}; // Test empty list funnel step, and null in funnel step
+        Object[] parameters2 = new Object[]{"alpha", 100L,   Arrays.asList("beta", "BAD"), "gamma", Arrays.asList("epsilon")};
+        Object[] parameters3 = new Object[]{"delta", 400L,   Arrays.asList("beta", "BAD"), "gamma", Arrays.asList("epsilon")};
+        Object[] parameters4 = new Object[]{"gamma", 200L,   Arrays.asList("beta", "BAD"), "gamma", Arrays.asList("epsilon")}; // gamma and beta happen at the same time, beta should come first (sorted on action after timestamp)
+        Object[] parameters5 = new Object[]{   null, 800L,   Arrays.asList("beta", "BAD"), "gamma", Arrays.asList("epsilon")}; // Check null action_column
+        Object[] parameters6 = new Object[]{"omega", null,   Arrays.asList("beta", "BAD"), "gamma", Arrays.asList("epsilon")}; // Check null timestamp
 
         // Process the data
         AggregationBuffer agg = udafEvaluator.getNewAggregationBuffer();

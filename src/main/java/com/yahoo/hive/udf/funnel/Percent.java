@@ -45,12 +45,12 @@ public class Percent extends GenericUDF {
     @Override
     public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
         if (arguments.length != 1) {
-            throw new UDFArgumentLengthException("The operator 'funnel' accepts 1 argument.");
+            throw new UDFArgumentLengthException("The operator 'percent' accepts 1 argument.");
         }
 
         // Check that the argument is a list type
         if (arguments[0].getCategory() != ObjectInspector.Category.LIST) {
-            throw new UDFArgumentTypeException(1, "Only list type arguments are accepted" + arguments[0].getTypeName() + " was passed.");
+            throw new UDFArgumentTypeException(1, "Only list type arguments are accepted, but " + arguments[0].getTypeName() + " was passed.");
         }
 
         // Check that the list is of type long
@@ -59,19 +59,19 @@ public class Percent extends GenericUDF {
             case LONG:
                 break;
             default:
-                throw new UDFArgumentTypeException(3, "A long array argument should be passed, but " + arguments[0].getTypeName() + " was passed instead.");
+                throw new UDFArgumentTypeException(1, "A long array argument should be passed, but " + arguments[0].getTypeName() + " was passed instead.");
         }
 
         // Get the list object inspector
         listInputObjectInspector = (ListObjectInspector) arguments[0];
 
-        // Return a list of doubles
+        // This UDF will return a list of doubles
         return ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector);
     }
 
     @Override
     public Object evaluate(DeferredObject[] args) throws HiveException {
-        // Check that array is not empty
+        // Check that we only have one argument
         if (args.length != 1) {
             return null;
         }

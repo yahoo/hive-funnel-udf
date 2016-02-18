@@ -16,13 +16,10 @@
 
 package com.yahoo.hive.udf.funnel;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.exec.Description;
@@ -34,7 +31,6 @@ import org.apache.hadoop.hive.ql.udf.UDFType;
 import org.apache.hadoop.hive.ql.udf.generic.AbstractGenericUDAFResolver;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFParameterInfo;
-import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryArray;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
@@ -102,17 +98,25 @@ public class Funnel extends AbstractGenericUDAFResolver {
     }
 
     public static class FunnelEvaluator extends GenericUDAFEvaluator {
-        //// For PARTIAL1 and COMPLETE
+        /** For PARTIAL1 and COMPLETE. */
         private ObjectInspector actionObjectInspector;
+
+        /** For PARTIAL1 and COMPLETE. */
         private ObjectInspector timestampObjectInspector;
+
+        /** For PARTIAL1 and COMPLETE. */
         private ListObjectInspector funnelObjectInspector;
 
-        //// For PARTIAL2 and FINAL
+        /** For PARTIAL2 and FINAL. */
         private StandardStructObjectInspector internalMergeObjectInspector;
 
-        // Constants for internal struct
+        /** Action key constant. */
         private static final String ACTION = "action";
+
+        /** Timestamp key constant. */
         private static final String TIMESTAMP = "timestamp";
+
+        /** Funnel key constant. */
         private static final String FUNNEL = "funnel";
 
         @Override
@@ -122,28 +126,42 @@ public class Funnel extends AbstractGenericUDAFResolver {
             // Setup the object inspectors and return type
             switch (m) {
                 case PARTIAL1:
+                    // Get the object inspectors
                     actionObjectInspector = parameters[0];
                     timestampObjectInspector = parameters[1];
                     funnelObjectInspector = (ListObjectInspector) parameters[2];
-                    List<String> fieldNames = new ArrayList<>();
-                    fieldNames.add(ACTION);
-                    fieldNames.add(TIMESTAMP);
-                    fieldNames.add(FUNNEL);
-                    List<ObjectInspector> fieldInspectors = new ArrayList<>();
-                    fieldInspectors.add(ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorUtils.getStandardObjectInspector(actionObjectInspector)));
-                    fieldInspectors.add(ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorUtils.getStandardObjectInspector(timestampObjectInspector)));
-                    fieldInspectors.add(ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorUtils.getStandardObjectInspector(actionObjectInspector))); // Want lazystring, not text
+
+                    // The field names for the struct, order matters
+                    List<String> fieldNames = Arrays.asList(ACTION, TIMESTAMP, FUNNEL);
+
+                    // The field inspectors for the struct, order matters
+                    List<ObjectInspector> fieldInspectors = Arrays.asList(actionObjectInspector, timestampObjectInspector, actionObjectInspector)
+                                                                  .stream()
+                                                                  .map(ObjectInspectorUtils::getStandardObjectInspector)
+                                                                  .map(ObjectInspectorFactory::getStandardListObjectInspector)
+                                                                  .collect(Collectors.toList());
+
+                    // Will output structs
                     return ObjectInspectorFactory.getStandardStructObjectInspector(fieldNames, fieldInspectors);
                 case PARTIAL2:
+                    // Get the struct object inspector
                     internalMergeObjectInspector = (StandardStructObjectInspector) parameters[0];
+
+                    // Will output structs
                     return internalMergeObjectInspector;
                 case FINAL:
+                    // Get the struct object inspector
                     internalMergeObjectInspector = (StandardStructObjectInspector) parameters[0];
+
+                    // Will output list of longs
                     return ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaLongObjectInspector);
                 case COMPLETE:
+                    // Get the object inspectors
                     actionObjectInspector = parameters[0];
                     timestampObjectInspector = parameters[1];
                     funnelObjectInspector = (ListObjectInspector) parameters[2];
+
+                    // Will output list of longs
                     return ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaLongObjectInspector);
                 default:
                     throw new HiveException("Unknown Mode: " + m.toString());
@@ -155,40 +173,33 @@ public class Funnel extends AbstractGenericUDAFResolver {
             return new FunnelAggregateBuffer();
         }
 
+
+        /**
+         * Adds funnel steps to the aggregate. Funnel steps can be lists or
+         * scalars.
+         *
+         * @param funnelAggregate
+         * @param parameters
+         */
+        private void addFunnelSteps(FunnelAggregateBuffer funnelAggregate, Object[] parameters) {
+            Arrays.stream(parameters)
+                  .map(this::convertFunnelStepObjectToList)
+                  .map(ListUtils::removeNullFromList)
+                  .filter(ListUtils::isNotEmpty)
+                  .forEach(funnelStep -> {
+                          funnelAggregate.funnelSteps.add(new HashSet<Object>(funnelStep));
+                          funnelAggregate.funnelSet.addAll(funnelStep);
+                      });
+        }
+
         @Override
         public void iterate(AggregationBuffer aggregate, Object[] parameters) throws HiveException {
             FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
 
-            // Add the funnel steps if not alread in funnelAggregate
+            // Add the funnel steps if not already stored
             if (funnelAggregate.funnelSteps.isEmpty()) {
-                for (int i = 2; i < parameters.length; i++) {
-                    // If list of funnels
-                    if (parameters[i] instanceof List) {
-                        // Get the funnel list for this step
-                        List<Object> funnelStep = (List<Object>) funnelObjectInspector.getList(parameters[i]);
-                        // Check if the funnel step is null
-                        if (funnelStep != null) {
-                            // Remove all nulls from list
-                            funnelStep.removeAll(Collections.singleton(null));
-                            // If there are values in the funnel
-                            if (!funnelStep.isEmpty()) {
-                                // Add the funnel steps to the funnel list
-                                funnelAggregate.funnelSteps.add(new HashSet<Object>(funnelStep));
-                                // Also add all actions in the funnel step to the total funnel set
-                                funnelAggregate.funnelSet.addAll(funnelStep);
-                            }
-                        }
-                    } else {
-                        // A single funnel (not an array), copy using the action object inspector
-                        Object funnelStep = ObjectInspectorUtils.copyToStandardObject(parameters[i], funnelObjectInspector.getListElementObjectInspector());
-                        if (funnelStep != null) {
-                            Set<Object> hashSet = new HashSet<Object>();
-                            hashSet.add(funnelStep);
-                            funnelAggregate.funnelSteps.add(hashSet);
-                            funnelAggregate.funnelSet.add(funnelStep);
-                        }
-                    } 
-                }
+                // Funnel steps start at index 2
+                addFunnelSteps(funnelAggregate, Arrays.copyOfRange(parameters, 2, parameters.length));
             }
 
             // Get the action_column value and add it (if it matches a funnel)
@@ -208,125 +219,67 @@ public class Funnel extends AbstractGenericUDAFResolver {
             }
         }
 
+        /**
+         * Given a struct and a key, look the key up in the struct with the
+         * merge object inspector.
+         *
+         * @param object Struct object
+         * @param key Key to look up
+         */
+        private Object structLookup(Object object, String key) {
+            return internalMergeObjectInspector.getStructFieldData(object, internalMergeObjectInspector.getStructFieldRef(key));
+        }
+
         @Override
         public void merge(AggregationBuffer aggregate, Object partial) throws HiveException {
             FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
 
-            // Get the partial data
-            Object partialAction = internalMergeObjectInspector.getStructFieldData(partial, internalMergeObjectInspector.getStructFieldRef(ACTION));
-            Object partialTimestamp = internalMergeObjectInspector.getStructFieldData(partial, internalMergeObjectInspector.getStructFieldRef(TIMESTAMP));
-            Object partialFunnel = internalMergeObjectInspector.getStructFieldData(partial, internalMergeObjectInspector.getStructFieldRef(FUNNEL));
-
             // Lists for partial data
-            List<Object> partialActionList;
-            List<Object> partialTimestampList;
-
-            // Get the partial action list
-            if (partialAction instanceof LazyBinaryArray) {
-                partialActionList = ((LazyBinaryArray) partialAction).getList();
-            } else {
-                partialActionList = (List<Object>) partialAction;
-            }
-
-            // Get the partial timestamp list
-            if (partialTimestamp instanceof LazyBinaryArray) {
-                partialTimestampList = ((LazyBinaryArray) partialTimestamp).getList();
-            } else {
-                partialTimestampList = (List<Object>) partialTimestamp;
-            }
+            List<Object> partialActionList = ListUtils.toList(structLookup(partial, ACTION));
+            List<Object> partialTimestampList = ListUtils.toList(structLookup(partial, TIMESTAMP));
 
             // If we don't have any funnel steps stored, then we should copy the funnel steps from the partial list
             if (funnelAggregate.funnelSteps.isEmpty()) {
-                List<Object> partialFunnelList;
-
-                // Get the partial funnel list
-                if (partialFunnel instanceof LazyBinaryArray) {
-                    partialFunnelList = ((LazyBinaryArray) partialFunnel).getList();
-                } else {
-                    partialFunnelList = (List<Object>) partialFunnel;
-                }
-
-                // Have to "deserialize" from the null separated list
-                Set<Object> funnelStepAccumulator = new HashSet<>();
-                for (Object e : partialFunnelList) {
-                    if (e == null) {
-                        // Add the funnel step, need to do a deep copy
-                        funnelAggregate.funnelSteps.add(new HashSet<>(funnelStepAccumulator));
-                        // Clear the set
-                        funnelStepAccumulator.clear();
-                    } else {
-                        // Add to the step accumulator
-                        funnelStepAccumulator.add(e);
-                    }
-                }
+                List<Object> partialFunnelList = ListUtils.toList(structLookup(partial, FUNNEL));
+                funnelAggregate.deserializeFunnel(partialFunnelList);
             }
 
-            // Add all the actions in partial to the end of the actions list
+            // Add all the partial actions and timestamps to the end of the lists
             funnelAggregate.actions.addAll(partialActionList);
-            // Add all the timestamps in partial to the end of the timestamps list
             funnelAggregate.timestamps.addAll(partialTimestampList);
         }
 
         @Override
-        public void reset(AggregationBuffer buff) throws HiveException {
-            ((FunnelAggregateBuffer) buff).actions.clear();
-            ((FunnelAggregateBuffer) buff).timestamps.clear();
-            ((FunnelAggregateBuffer) buff).funnelSteps.clear();
-            ((FunnelAggregateBuffer) buff).funnelSet.clear();
+        public void reset(AggregationBuffer aggregate) throws HiveException {
+            FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
+            funnelAggregate.clear();
         }
+
 
         @Override
         public Object terminate(AggregationBuffer aggregate) throws HiveException {
-            final FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
-
-            // Create index for sorting on timestamp/action
-            Integer[] sortedIndex = new Integer[funnelAggregate.actions.size()];
-            for (int i = 0 ; i < sortedIndex.length; i++) {
-                sortedIndex[i] = i;
-            }
-
-            // Sort index
-            Arrays.sort(sortedIndex, new Comparator<Integer>() {
-                public int compare(Integer i1, Integer i2) {
-                    int result = ((Comparable) funnelAggregate.timestamps.get(i1)).compareTo(funnelAggregate.timestamps.get(i2));
-                    // Match in timestamp, sort on action
-                    if (result == 0) {
-                        return ((Comparable) funnelAggregate.actions.get(i1)).compareTo(funnelAggregate.actions.get(i2));
-                    }
-                    return result;
-                }
-            });
-
-            // Input size
-            int inputSize = funnelAggregate.actions.size();
-
-            // Stores the current index we are at for the funnel
-            int currentFunnelStepIndex = 0;
-
-            // The last funnel index
-            int funnelStepSize = funnelAggregate.funnelSteps.size();
-
-            // Result funnel, all 0's at the start
-            List<Long> results = new ArrayList<>(Collections.nCopies(funnelStepSize, 0L));
-
-            // Check every sorted action until we reach the end of the funnel
-            for (int i = 0; i < inputSize && currentFunnelStepIndex < funnelStepSize; i++) {
-                // Check if the current action is in the current funnel step
-                if (funnelAggregate.funnelSteps.get(currentFunnelStepIndex).contains(funnelAggregate.actions.get(sortedIndex[i]))) {
-                    // We have a match, output 1 for this funnel step
-                    results.set(currentFunnelStepIndex, 1L);
-                    // Move to the next funnel step
-                    currentFunnelStepIndex++;
-                }
-            }
-
-            return results;
+            FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
+            return funnelAggregate.computeFunnel();
         }
 
         @Override
         public Object terminatePartial(AggregationBuffer aggregate) throws HiveException {
             FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
             return funnelAggregate.serialize();
+        }
+
+        /**
+         * Convert object to list of funnels for a funnel step.
+         * 
+         * @parameter
+         * @return List of funnels in funnel step
+         */
+        private List<Object> convertFunnelStepObjectToList(Object parameter) {
+            if (parameter instanceof List) {
+                return (List<Object>) funnelObjectInspector.getList(parameter);
+            } else {
+                return Arrays.asList(ObjectInspectorUtils.copyToStandardObject(parameter, funnelObjectInspector.getListElementObjectInspector()));
+            }
         }
     }
 }
