@@ -19,7 +19,6 @@ package com.yahoo.hive.udf.funnel;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -32,7 +31,6 @@ import org.apache.hadoop.hive.ql.udf.UDFType;
 import org.apache.hadoop.hive.ql.udf.generic.AbstractGenericUDAFResolver;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFParameterInfo;
-import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryArray;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
@@ -186,8 +184,8 @@ public class Funnel extends AbstractGenericUDAFResolver {
         private void addFunnelSteps(FunnelAggregateBuffer funnelAggregate, Object[] parameters) {
             Arrays.stream(parameters)
                   .map(this::convertFunnelStepObjectToList)
-                  .map(this::removeNullFromList)
-                  .filter(this::isNotEmpty)
+                  .map(ListUtils::removeNullFromList)
+                  .filter(ListUtils::isNotEmpty)
                   .forEach(funnelStep -> {
                           funnelAggregate.funnelSteps.add(new HashSet<Object>(funnelStep));
                           funnelAggregate.funnelSet.addAll(funnelStep);
@@ -237,12 +235,12 @@ public class Funnel extends AbstractGenericUDAFResolver {
             FunnelAggregateBuffer funnelAggregate = (FunnelAggregateBuffer) aggregate;
 
             // Lists for partial data
-            List<Object> partialActionList = toList(structLookup(partial, ACTION));
-            List<Object> partialTimestampList = toList(structLookup(partial, TIMESTAMP));
+            List<Object> partialActionList = ListUtils.toList(structLookup(partial, ACTION));
+            List<Object> partialTimestampList = ListUtils.toList(structLookup(partial, TIMESTAMP));
 
             // If we don't have any funnel steps stored, then we should copy the funnel steps from the partial list
             if (funnelAggregate.funnelSteps.isEmpty()) {
-                List<Object> partialFunnelList = toList(structLookup(partial, FUNNEL));
+                List<Object> partialFunnelList = ListUtils.toList(structLookup(partial, FUNNEL));
                 funnelAggregate.deserializeFunnel(partialFunnelList);
             }
 
@@ -282,45 +280,6 @@ public class Funnel extends AbstractGenericUDAFResolver {
             } else {
                 return Arrays.asList(ObjectInspectorUtils.copyToStandardObject(parameter, funnelObjectInspector.getListElementObjectInspector()));
             }
-        }
-
-        /**
-         * Returns true if list if not empty.
-         *
-         * @param list
-         * @return True if list not empty
-         */
-        private boolean isNotEmpty(List<Object> list) {
-            return !list.isEmpty();
-        }
-
-        /**
-         * Removes null values from list.
-         *
-         * @param list
-         * @return List without null values
-         */
-        private List<Object> removeNullFromList(List<Object> list) {
-            return list.stream()
-                       .filter(Objects::nonNull)
-                       .collect(Collectors.toList());
-        }
-
-        /**
-         * Cast an object to a list. Checks if it is a LazyBinaryArray or a
-         * regular list.
-         *
-         * @param object Input object to try and cast to a list.
-         * @return List of objects.
-         */
-        private List<Object> toList(Object object) {
-            List<Object> result;
-            if (object instanceof LazyBinaryArray) {
-                result = ((LazyBinaryArray) object).getList();
-            } else {
-                result = (List<Object>) object;
-            }
-            return result;
         }
     }
 }
