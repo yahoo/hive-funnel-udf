@@ -17,6 +17,7 @@
 package com.yahoo.hive.udf.funnel;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.exec.Description;
@@ -31,6 +32,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFParameterInfo;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.ListTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
@@ -81,17 +83,21 @@ public class Merge extends AbstractGenericUDAFResolver {
     }
 
     public static class MergeEvaluator extends GenericUDAFEvaluator {
-        // List object inspector
+        /** Input list object inspector. Used during iterate. */
         private ListObjectInspector listObjectInspector;
+
+        /** Long object inspector. Used during merge. */
+        private LongObjectInspector longObjectInspector;
 
         @Override
         public ObjectInspector init(Mode mode, ObjectInspector[] parameters) throws HiveException {
             super.init(mode, parameters);
 
-            // Setup the list object inspector.
+            // Setup the list and element object inspectors.
             listObjectInspector = (ListObjectInspector) parameters[0];
+            longObjectInspector = (LongObjectInspector) listObjectInspector.getListElementObjectInspector();
 
-            // Return the list of long inspector.
+            // Will return a list of longs
             return ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaLongObjectInspector);
         }
 
@@ -117,9 +123,15 @@ public class Merge extends AbstractGenericUDAFResolver {
         @Override
         public void merge(AggregationBuffer aggregate, Object partial) throws HiveException {
             if (partial != null) {
+
                 // Get the funnel aggregate and the funnel data
                 MergeAggregateBuffer funnelAggregate = (MergeAggregateBuffer) aggregate;
-                List<Long> funnel = (List<Long>) listObjectInspector.getList(partial);
+
+                // Convert the partial results into a list of longs
+                List<Long> funnel = listObjectInspector.getList(partial)
+                                                       .stream()
+                                                       .map(longObjectInspector::get)
+                                                       .collect(Collectors.toList());
 
                 // Add the funnel to the funnel aggregate
                 funnelAggregate.addFunnel(funnel);
