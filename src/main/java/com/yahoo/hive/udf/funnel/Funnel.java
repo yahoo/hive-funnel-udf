@@ -44,10 +44,10 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
 @UDFType(deterministic = true)
 @Description(name = "funnel",
-             value = "_FUNC_(action_column, timestamp_column, funnel_1, funnel_2, ...) - Builds a funnel report applied to the action_column. Funnels can be lists or scalars. Should be used with merge_funnel UDF.",
+             value = "_FUNC_(action_column, timestamp_column, step_1, step_2, ...) - Builds a funnel report applied to the action_column. Steps are arrays of the same type as action. Should be used with merge_funnel UDF.",
              extended = "Example: SELECT funnel(action, timestamp, array('signup_page', 'email_signup'), \n" +
-                        "                                          'confirm_button',\n" +
-                        "                                          'submit_button') AS funnel\n" +
+                        "                                          array('confirm_button'),\n" +
+                        "                                          array('submit_button')) AS funnel\n" +
                         "         FROM table\n" +
                         "         GROUP BY user_id;")
 public class Funnel extends AbstractGenericUDAFResolver {
@@ -84,13 +84,8 @@ public class Funnel extends AbstractGenericUDAFResolver {
                         throw new UDFArgumentTypeException(i, "Funnel list parameter " + Integer.toString(i) + " of type " + parameters[i].getTypeName() + " does not match expected type " + parameters[0].getTypeName() + ".");
                     }
                     break;
-                case PRIMITIVE:
-                    if (((PrimitiveTypeInfo) parameters[i]).getPrimitiveCategory() != actionColumnCategory) {
-                        throw new UDFArgumentTypeException(i, "Funnel list parameter " + Integer.toString(i) + " of type " + parameters[i].getTypeName() + " does not match expected type " + parameters[0].getTypeName() + ".");
-                    }
-                    break;
                 default:
-                    throw new UDFArgumentTypeException(i, "Funnel list parameter " + Integer.toString(i) + " of type " + parameters[i].getTypeName() + " should be a list or a scalar.");
+                    throw new UDFArgumentTypeException(i, "Funnel list parameter " + Integer.toString(i) + " of type " + parameters[i].getTypeName() + " should be a list.");
             }
         }
 
@@ -270,7 +265,7 @@ public class Funnel extends AbstractGenericUDAFResolver {
 
         /**
          * Convert object to list of funnels for a funnel step.
-         * 
+         *
          * @parameter
          * @return List of funnels in funnel step
          */

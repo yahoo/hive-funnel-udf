@@ -89,15 +89,12 @@ class FunnelAggregateBuffer implements AggregationBuffer {
     public void clear() {
         actions.clear();
         timestamps.clear();
-        // TODO Might be able to remove these two and reuse, possible optimization
-        //funnelSteps.clear();
-        //funnelSet.clear();
     }
 
     /**
      * Compute the funnel. Sort the actions by timestamp/action, then build the
      * funnel.
-     * 
+     *
      * @return list of longs representing the funnel
      */
     public List<Long> computeFunnel() {

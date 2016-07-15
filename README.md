@@ -73,7 +73,7 @@ There are three funnel UDFs provided: [`funnel`](#funnel),
 [`funnel_merge`](#funnel_merge), [`funnel_percent`](#funnel_percent).
 
 The [`funnel`](#funnel) UDF outputs an array of longs showing conversion rates
-across the provided funnels.
+across the provided funnel steps.
 
 The [`funnel_merge`](#funnel_merge) UDF merges multiple arrays of longs by
 adding them together.
@@ -85,15 +85,15 @@ There is no need to sort the data on timestamp, the UDF will take care of it. If
 there is a collision in the timestamps, it then sorts on the action column.
 
 ### `funnel`
-`funnel(action_column, timestamp_column, array(funnel_1_a, funnel_1_b), funnel_2, ...)`
+`funnel(action_column, timestamp_column, array(funnel_1_a, funnel_1_b), array(funnel_2), ...)`
   - Builds a funnel report applied to the `action_column`, sorted by the
     `timestamp_column`.
-  - The funnels are scalars or arrays of the same type as the `action` column. This allows
+  - The funnel steps are arrays of the same type as the `action` column. This allows
     for multiple matches to move to the next funnel.
     - For example, funnel_1 could be `array('register_button',
       'facebook_invite_register')`. The funnel will match the first occurence
       of either of these actions and proceed to the next funnel.
-    - Or, funnel_1 could just be `'register_button'`.
+    - Or, funnel_1 could just be `array('register_button')`.
   - You can have an arbitrary number of funnels.
   - The `timestamp_column` can be of any comparable type (Strings, Integers,
     Dates, etc).
@@ -132,8 +132,8 @@ Assume a table `user_data`:
 ```sql
 SELECT funnel_merge(funnel)
 FROM (SELECT funnel(action, timestamp, array('signup_page', 'email_signup'),
-                                       'confirm_button',
-                                       'submit_button') AS funnel
+                                       array('confirm_button'),
+                                       array('submit_button')) AS funnel
       FROM user_data
       GROUP BY user_id) t1;
 ```
@@ -144,9 +144,9 @@ Result: `[3, 2, 1]`
 
 ```sql
 SELECT funnel_percent(funnel_merge(funnel))
-FROM (SELECT funnel(action, timestamp, 'signup_page',
-                                       'confirm_button',
-                                       'submit_button') AS funnel
+FROM (SELECT funnel(action, timestamp, array('signup_page'),
+                                       array('confirm_button'),
+                                       array('submit_button')) AS funnel
       FROM user_data
       GROUP BY user_id) t1;
 ```
@@ -158,9 +158,9 @@ Result: `[1.0, 0.66, 0.5]`
 ```sql
 SELECT gender, funnel_merge(funnel)
 FROM (SELECT gender,
-             funnel(action, timestamp, 'signup_page',
-                                       'confirm_button',
-                                       'submit_button') AS funnel
+             funnel(action, timestamp, array('signup_page'),
+                                       array('confirm_button'),
+                                       array('submit_button')) AS funnel
       FROM table
       GROUP BY user_id, gender) t1
 GROUP BY gender;
@@ -172,11 +172,11 @@ Result: `m: [1, 0, 0], f: [2, 2, 1]`
 
 ```sql
 SELECT funnel_merge(funnel1), funnel_merge(funnel2)
-FROM (SELECT funnel(action, timestamp, 'signup_page',
-                                       'confirm_button',
-                                       'submit_button') AS funnel1
-             funnel(action, timestamp, 'signup_page',
-                                       'decline') AS funnel2
+FROM (SELECT funnel(action, timestamp, array('signup_page'),
+                                       array('confirm_button'),
+                                       array('submit_button')) AS funnel1
+             funnel(action, timestamp, array('signup_page'),
+                                       array('decline')) AS funnel2
       FROM table
       GROUP BY user_id) t1;
 ```
