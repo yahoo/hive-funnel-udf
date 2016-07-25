@@ -34,18 +34,18 @@ import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 @UDFType(deterministic = true)
-@Description(name = "percent", 
-             value = "percent(funnel) - Converts a funnel from counts to percent change.",
-             extended = "Converts absolute count funnel to a percent change funnel.")
-public class Percent extends GenericUDF {
-    static final Log LOG = LogFactory.getLog(Percent.class.getName());
+@Description(name = "fallout",
+             value = "fallout(funnel) - Converts a funnel from raw counts to fallout rates.",
+             extended = "Converts absolute count funnel to fallout rates.")
+public class Fallout extends GenericUDF {
+    static final Log LOG = LogFactory.getLog(Fallout.class.getName());
 
     private ListObjectInspector listInputObjectInspector;
 
     @Override
     public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
         if (arguments.length != 1) {
-            throw new UDFArgumentLengthException("The operator 'percent' accepts 1 argument.");
+            throw new UDFArgumentLengthException("The operator 'fallout' accepts 1 argument.");
         }
 
         // Check that the argument is a list type
@@ -87,17 +87,17 @@ public class Percent extends GenericUDF {
             return result;
         }
 
-        // First element is always 100%
-        result.add(1.0);
+        // First element is always 0%
+        result.add(0.0);
 
-        // Starting from the second element, calculate percentage drop
+        // Starting from the second element, calculate fallout rate
         for (int i = 1; i < funnel.size(); i++) {
             // Check for 0's
             if (funnel.get(i) <= 0 || funnel.get(i - 1) <= 0) {
                 result.add(0.0);
             } else {
                 // No 0's, calculate ratio
-                result.add((double) funnel.get(i) / funnel.get(i - 1));
+                result.add(1 - ((double) funnel.get(i) / funnel.get(i - 1)));
             }
         }
 
@@ -106,6 +106,6 @@ public class Percent extends GenericUDF {
 
     @Override
     public String getDisplayString(String[] children) {
-        return "Converts absolute count funnel to a percent change funnel.";
+        return "Converts absolute count funnel to fallout rates.";
     }
 }

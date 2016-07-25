@@ -20,10 +20,11 @@ Hive table.
   * [How to use](#how-to-use)
     * [`funnel`](#funnel)
     * [`funnel_merge`](#funnel_merge)
-    * [`funnel_percent`](#funnel_percent)
+    * [`funnel_conversion`](#funnel_conversion)
+    * [`funnel_fallout`](#funnel_fallout)
   * [Examples](#examples)
     * [Simple funnel](#simple-funnel)
-    * [Simple funnel with percent](#simple-funnel-with-percent)
+    * [Simple funnel with conversion](#simple-funnel-with-conversion)
     * [Funnel with multiple groups](#funnel-with-multiple-groups)
     * [Multiple parallel funnels](#multiple-parallel-funnels)
   * [Contributors](#contributors)
@@ -54,23 +55,26 @@ With temporary functions:
 
 ```sql
 ADD JAR funnel.jar;
-CREATE TEMPORARY FUNCTION funnel         AS 'com.yahoo.hive.udf.funnel.Funnel';
-CREATE TEMPORARY FUNCTION funnel_merge   AS 'com.yahoo.hive.udf.funnel.Merge';
-CREATE TEMPORARY FUNCTION funnel_percent AS 'com.yahoo.hive.udf.funnel.Percent';
+CREATE TEMPORARY FUNCTION funnel            AS 'com.yahoo.hive.udf.funnel.Funnel';
+CREATE TEMPORARY FUNCTION funnel_merge      AS 'com.yahoo.hive.udf.funnel.Merge';
+CREATE TEMPORARY FUNCTION funnel_conversion AS 'com.yahoo.hive.udf.funnel.Conversion';
+CREATE TEMPORARY FUNCTION funnel_fallout    AS 'com.yahoo.hive.udf.funnel.Fallout';
 ```
 
 With permenant functions you need to put the JAR on HDFS, and it will be registered with a database (you have to replace `DATABASE` and `PATH_TO_JAR` with your values):
 
 ```sql
-CREATE FUNCTION DATABASE.funnel         AS 'com.yahoo.hive.udf.funnel.Funnel'  USING JAR 'hdfs:///PATH_TO_JAR/funnel.jar';
-CREATE FUNCTION DATABASE.funnel_merge   AS 'com.yahoo.hive.udf.funnel.Merge'   USING JAR 'hdfs:///PATH_TO_JAR/funnel.jar';
-CREATE FUNCTION DATABASE.funnel_percent AS 'com.yahoo.hive.udf.funnel.Percent' USING JAR 'hdfs:///PATH_TO_JAR/funnel.jar';
+CREATE FUNCTION DATABASE.funnel            AS 'com.yahoo.hive.udf.funnel.Funnel'  USING JAR 'hdfs:///PATH_TO_JAR/funnel.jar';
+CREATE FUNCTION DATABASE.funnel_merge      AS 'com.yahoo.hive.udf.funnel.Merge'   USING JAR 'hdfs:///PATH_TO_JAR/funnel.jar';
+CREATE FUNCTION DATABASE.funnel_conversion AS 'com.yahoo.hive.udf.funnel.Conversion' USING JAR 'hdfs:///PATH_TO_JAR/funnel.jar';
+CREATE FUNCTION DATABASE.funnel_fallout    AS 'com.yahoo.hive.udf.funnel.Fallout' USING JAR 'hdfs:///PATH_TO_JAR/funnel.jar';
 ```
 
 ## How to use
 
-There are three funnel UDFs provided: [`funnel`](#funnel),
-[`funnel_merge`](#funnel_merge), [`funnel_percent`](#funnel_percent).
+There are fout funnel UDFs provided: [`funnel`](#funnel),
+[`funnel_merge`](#funnel_merge), [`funnel_conversion`](#funnel_conversion),
+[`funnel_fallout`](#funnel_fallout).
 
 The [`funnel`](#funnel) UDF outputs an array of longs showing conversion rates
 across the provided funnel steps.
@@ -78,8 +82,11 @@ across the provided funnel steps.
 The [`funnel_merge`](#funnel_merge) UDF merges multiple arrays of longs by
 adding them together.
 
-The [`funnel_percent`](#funnel_percent) UDF takes a raw count funnel result and
-converts it to a percent change count.
+The [`funnel_conversion`](#funnel_conversion) UDF takes a raw count funnel result and
+converts it to the conversion rate.
+
+The [`funnel_fallout`](#funnel_fallout) UDF takes a raw count funnel result and
+converts it to the fallout rate.
 
 There is no need to sort the data on timestamp, the UDF will take care of it. If
 there is a collision in the timestamps, it then sorts on the action column.
@@ -102,14 +109,23 @@ there is a collision in the timestamps, it then sorts on the action column.
 `funnel_merge(funnel_column)`
   - Merges funnels. Use with funnel UDF.
 
-### `funnel_percent`
-`funnel_percent(funnel_column)`
-  - Converts the result of a [`funnel_merge`](#funnel_merge) to percent change.
+### `funnel_conversion`
+`funnel_conversion(funnel_column)`
+  - Converts the result of a [`funnel_merge`](#funnel_merge) to a conversion
+    rate.  Use with funnel and funnel_merge UDF.
+  - For example, a result from [`funnel_merge`](#funnel_merge) could look like
+    `[245, 110, 54, 13]`. This is result is in raw counts. If we pass this
+    through [`funnel_conversion`](#funnel_conversion) then it would look like
+    `[1.0, 0.44, 0.49, 0.24]`.
+
+### `funnel_fallout`
+`funnel_fallout(funnel_column)`
+  - Converts the result of a [`funnel_merge`](#funnel_merge) to a fallout rate.
     Use with funnel and funnel_merge UDF.
   - For example, a result from [`funnel_merge`](#funnel_merge) could look like
     `[245, 110, 54, 13]`. This is result is in raw counts. If we pass this
-    through [`funnel_percent`](#funnel_percent) then it would look like `[1.0,
-    0.44, 0.49, 0.24]`.
+    through [`funnel_fallout`](#funnel_fallout) then it would look like `[0.0,
+    0.55, 0.50, 0.75]`.
 
 ## Examples
 
@@ -140,10 +156,10 @@ FROM (SELECT funnel(action, timestamp, array('signup_page', 'email_signup'),
 
 Result: `[3, 2, 1]`
 
-### Simple funnel with percent
+### Simple funnel with conversion rate
 
 ```sql
-SELECT funnel_percent(funnel_merge(funnel))
+SELECT funnel_conversion(funnel_merge(funnel))
 FROM (SELECT funnel(action, timestamp, array('signup_page'),
                                        array('confirm_button'),
                                        array('submit_button')) AS funnel

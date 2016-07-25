@@ -31,12 +31,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit test for Percent.
+ * Unit test for Conversion.
  */
-public class PercentTest {
+public class ConversionTest {
     @Test(expected = UDFArgumentLengthException.class)
     public void testTooManyInputs() throws HiveException {
-        Percent udf = new Percent();
+        Conversion udf = new Conversion();
 
         ObjectInspector[] inputOiList = new ObjectInspector[]{
             ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaLongObjectInspector),
@@ -48,7 +48,7 @@ public class PercentTest {
 
     @Test(expected = UDFArgumentTypeException.class)
     public void testBadInputType() throws HiveException {
-        Percent udf = new Percent();
+        Conversion udf = new Conversion();
 
         ObjectInspector[] inputOiList = new ObjectInspector[]{
             PrimitiveObjectInspectorFactory.javaLongObjectInspector
@@ -58,8 +58,8 @@ public class PercentTest {
     }
 
     @Test
-    public void testConvertToPercent() throws HiveException {
-        Percent udf = new Percent();
+    public void testConvertToConversion() throws HiveException {
+        Conversion udf = new Conversion();
 
         ObjectInspector[] inputOiList = new ObjectInspector[]{
                 ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaLongObjectInspector)
@@ -78,7 +78,7 @@ public class PercentTest {
 
     @Test
     public void testIncorrectNumberOfArgs() throws HiveException {
-        Percent udf = new Percent();
+        Conversion udf = new Conversion();
 
         ObjectInspector[] inputOiList = new ObjectInspector[]{
                 ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaLongObjectInspector)
@@ -98,7 +98,7 @@ public class PercentTest {
 
     @Test
     public void testEmptyFunnel() throws HiveException {
-        Percent udf = new Percent();
+        Conversion udf = new Conversion();
 
         ObjectInspector[] inputOiList = new ObjectInspector[]{
                 ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaLongObjectInspector)
@@ -116,8 +116,8 @@ public class PercentTest {
     }
 
     @Test
-    public void testConvertToPercentWithZeros() throws HiveException {
-        Percent udf = new Percent();
+    public void testConvertToConversionWithZeros() throws HiveException {
+        Conversion udf = new Conversion();
 
         ObjectInspector[] inputOiList = new ObjectInspector[]{
                 ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaLongObjectInspector)
