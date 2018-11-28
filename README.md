@@ -1,5 +1,7 @@
 # Hive Funnel Analysis UDFs
 
+**Please note**: This project is no longer maintained and contains known security vulnerabilities. Use at your own risk!
+
 [![Build Status](https://travis-ci.org/yahoo/hive-funnel-udf.svg?branch=master)](https://travis-ci.org/yahoo/hive-funnel-udf)
 [![Coverage Status](https://coveralls.io/repos/github/yahoo/hive-funnel-udf/badge.svg?branch=master)](https://coveralls.io/github/yahoo/hive-funnel-udf?branch=master)
 [![Apache License 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat)](LICENSE)
