@@ -137,6 +137,7 @@ There are 3 known security issues with this package. Use the following steps to 
 #### Description
 
 In Apache Hive 2.3.3, 3.1.0 and earlier, local resources on HiveServer2 machines are not properly protected against malicious user if ranger, sentry or sql standard authorizer is not in use.
+
 [CVE-2018-11777 Details](https://nvd.nist.gov/vuln/detail/CVE-2018-11777)
 
 #### Resolution
@@ -148,6 +149,7 @@ Update pom.xml to use Hive 2.3.4.
 #### Description
 
 In Apache Hive 0.6.0 to 2.3.2, malicious user might use any xpath UDFs (xpath/xpath_string/xpath_boolean/xpath_number/xpath_double/xpath_float/xpath_long/xpath_int/xpath_short) to expose the content of a file on the machine running HiveServer2 owned by HiveServer2 user (usually hive) if hive.server2.enable.doAs=false.
+
 [CVE-2018-1284 Details](https://nvd.nist.gov/vuln/detail/CVE-2018-1284)
 
 #### Resolution
@@ -159,6 +161,7 @@ Update pom.xml to use Hive 2.3.3 or do not set `hive.server2.enable.doAs` to `fa
 #### Description
 
 The authorization framework in Apache Hive 1.0.0, 1.0.1, 1.1.0, 1.1.1, 1.2.0 and 1.2.1, on clusters protected by Ranger and SqlStdHiveAuthorization, allows attackers to bypass intended parent table access restrictions via unspecified partition-level operations.
+
 [CVE-2015-7521 Details](https://nvd.nist.gov/vuln/detail/CVE-2015-7521)
 
 #### Resolution
