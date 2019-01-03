@@ -130,7 +130,7 @@ there is a collision in the timestamps, it then sorts on the action column.
 
 ## Security
 
-There are 3 known security issues with this package. Use the following steps to mitigate these issues, or update to Hive 2.3.4 to avoid all issues at once.
+Older versions of Hive have known security issues. Keep the following issues in mind when deciding what Hive version to use when building the UDFs.  Use the following steps to mitigate these issues, or update to Hive 2.3.4 to avoid all issues at once.
 
 ### [CVE-2018-11777](https://nvd.nist.gov/vuln/detail/CVE-2018-11777)
 
