@@ -1,7 +1,5 @@
 # Hive Funnel Analysis UDFs
 
-**Please note**: This project is no longer maintained and contains known security vulnerabilities. Use at your own risk!
-
 [![Build Status](https://travis-ci.org/yahoo/hive-funnel-udf.svg?branch=master)](https://travis-ci.org/yahoo/hive-funnel-udf)
 [![Coverage Status](https://coveralls.io/repos/github/yahoo/hive-funnel-udf/badge.svg?branch=master)](https://coveralls.io/github/yahoo/hive-funnel-udf?branch=master)
 [![Apache License 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat)](LICENSE)
@@ -24,6 +22,7 @@ Hive table.
     * [`funnel_merge`](#funnel_merge)
     * [`funnel_conversion`](#funnel_conversion)
     * [`funnel_fallout`](#funnel_fallout)
+  * [Security](#security)
   * [Examples](#examples)
     * [Simple funnel](#simple-funnel)
     * [Simple funnel with conversion](#simple-funnel-with-conversion)
@@ -74,7 +73,7 @@ CREATE FUNCTION DATABASE.funnel_fallout    AS 'com.yahoo.hive.udf.funnel.Fallout
 
 ## How to use
 
-There are fout funnel UDFs provided: [`funnel`](#funnel),
+There are four funnel UDFs provided: [`funnel`](#funnel),
 [`funnel_merge`](#funnel_merge), [`funnel_conversion`](#funnel_conversion),
 [`funnel_fallout`](#funnel_fallout).
 
@@ -128,6 +127,40 @@ there is a collision in the timestamps, it then sorts on the action column.
     `[245, 110, 54, 13]`. This is result is in raw counts. If we pass this
     through [`funnel_fallout`](#funnel_fallout) then it would look like `[0.0,
     0.55, 0.50, 0.75]`.
+
+## Security
+
+Older versions of Hive have known security issues. Keep the following issues in mind when deciding what Hive version to use when building the UDFs.  Use the following steps to mitigate these issues, or update to Hive 2.3.4 to avoid all issues at once.
+
+### [CVE-2018-11777](https://nvd.nist.gov/vuln/detail/CVE-2018-11777)
+
+#### Description
+
+In Apache Hive 2.3.3, 3.1.0 and earlier, local resources on HiveServer2 machines are not properly protected against malicious user if ranger, sentry or sql standard authorizer is not in use.
+
+#### Resolution
+
+Update pom.xml to use Hive 2.3.4.
+
+### [CVE-2018-1284](https://nvd.nist.gov/vuln/detail/CVE-2018-1284)
+
+#### Description
+
+In Apache Hive 0.6.0 to 2.3.2, malicious user might use any xpath UDFs (xpath/xpath_string/xpath_boolean/xpath_number/xpath_double/xpath_float/xpath_long/xpath_int/xpath_short) to expose the content of a file on the machine running HiveServer2 owned by HiveServer2 user (usually hive) if hive.server2.enable.doAs=false.
+
+#### Resolution
+
+Update pom.xml to use Hive 2.3.3 or do not set `hive.server2.enable.doAs` to `false`.
+
+### [CVE-2015-7521](https://nvd.nist.gov/vuln/detail/CVE-2015-7521)
+
+#### Description
+
+The authorization framework in Apache Hive 1.0.0, 1.0.1, 1.1.0, 1.1.1, 1.2.0 and 1.2.1, on clusters protected by Ranger and SqlStdHiveAuthorization, allows attackers to bypass intended parent table access restrictions via unspecified partition-level operations.
+
+#### Resolution
+
+Update pom.xml to use Hive 1.2.2.
 
 ## Examples
 
